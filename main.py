@@ -1,13 +1,27 @@
 import streamlit as st
 from openai import OpenAI
+from openai import OpenAIError
 from dotenv import load_dotenv
 import os
 
 # Load environment variables
 load_dotenv()
 
-# Initialize OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+def create_openai_client():
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        st.error("OPENAI_API_KEY not found in environment variables!")
+        st.stop()
+    return OpenAI(api_key=api_key)
+
+# Initialize client only when needed
+client = None
+
+def get_client():
+    global client
+    if client is None:
+        client = create_openai_client()
+    return client
 
 # System message template for prompt optimization
 SYSTEM_MESSAGE = """
@@ -31,17 +45,23 @@ Use this template:
 
 def optimize_prompt(user_prompt, style="General"):
     try:
+        client = get_client()
         response = client.chat.completions.create(
-            model="gpt-4-turbo",
+            model="gpt-4-turbo-preview",
             messages=[
                 {"role": "system", "content": SYSTEM_MESSAGE},
                 {"role": "user", "content": f"Original prompt: {user_prompt}\nOptimization style: {style}"}
             ],
-            temperature=0.7
+            temperature=0.7,
+            max_tokens=1000  # Add a reasonable token limit
         )
         return response.choices[0].message.content
+    except OpenAIError as e:
+        st.error(f"OpenAI API error: {str(e)}")
+        return None
     except Exception as e:
-        return f"Error: {str(e)}"
+        st.error(f"Unexpected error: {str(e)}")
+        return None
 
 # Streamlit UI
 st.set_page_config(page_title="Prompt Optimizer", layout="wide")
@@ -63,22 +83,22 @@ if st.button("✨ Optimize Prompt"):
     if user_input.strip():
         with st.spinner("Optimizing your prompt..."):
             optimized = optimize_prompt(user_input, style)
-            
-            # Display results in tabs
-            tab1, tab2 = st.tabs(["Optimized Prompt", "Explanation"])
-            
-            with tab1:
-                st.subheader("Enhanced Prompt")
-                st.code(optimized, language="markdown")
+            if optimized:  # Only proceed if we got a valid response
+                # Display results in tabs
+                tab1, tab2 = st.tabs(["Optimized Prompt", "Explanation"])
                 
-            with tab2:
-                st.subheader("What Changed?")
-                st.write("""
-                - 🎯 **Sharpened Focus**: Removed ambiguity in the main objective
-                - 🏗️ **Added Structure**: Organized requirements into clear sections
-                - 👥 **Audience Alignment**: Adjusted tone for better accessibility
-                - 📝 **Examples Included**: Added representative samples when needed
-                """)
+                with tab1:
+                    st.subheader("Enhanced Prompt")
+                    st.code(optimized, language="markdown")
+                
+                with tab2:
+                    st.subheader("What Changed?")
+                    st.write("""
+                    - 🎯 **Sharpened Focus**: Removed ambiguity in the main objective
+                    - 🏗️ **Added Structure**: Organized requirements into clear sections
+                    - 👥 **Audience Alignment**: Adjusted tone for better accessibility
+                    - 📝 **Examples Included**: Added representative samples when needed
+                    """)
     else:
         st.warning("Please enter a prompt to optimize")
 
@@ -91,4 +111,4 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("**Supported LLMs:**\n- ChatGPT\n- Gemini\n- Claude")
     st.markdown("---")
-    st.markdown("Built with 💪🏻 by @Sam6002 ") 
+    st.markdown("Built with 💪🏻 by [@Sam6002](https://github.com/Sam6002)", unsafe_allow_html=True)
