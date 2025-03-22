@@ -13,8 +13,8 @@ A Streamlit application that helps optimize prompts for various Large Language M
 
 1. Clone the repository:
 ```bash
-git clone <your-repository-url>
-cd prompt-optimizer
+git clone https://github.com/Sam06002/Proptize.git
+cd Proptize
 ```
 
 2. Create a virtual environment and activate it:
@@ -51,6 +51,10 @@ streamlit run main.py
 - Python 3.8+
 - OpenAI API key
 - Required packages listed in `requirements.txt`
+
+## Author
+
+- [Sam6002](https://github.com/Sam06002)
 
 ## License
 
